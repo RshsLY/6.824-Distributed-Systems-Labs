@@ -17,28 +17,23 @@ type Coordinator struct {
 //
 // the RPC argument and reply types are defined in rpc.go.
 func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
-	if args.status == "mapped" {
-		delete(toMap, args.fileName)
+	if args.Status == "mapped" {
+		delete(toMap, args.FileName)
 		return nil
 	}
-	if args.status == "reduced" {
-		delete(toReduced, args.fileName)
-		return nil
-	}
-	for s := range toMap {
-		if toMap[s] != 0 {
-			continue
+	if args.Status == "toMap" {
+		for s := range toMap {
+			//已经有进程在map了
+			if toMap[s] != 0 {
+				continue
+			}
+			toMap[s] = 1
+			reply.Status = "toMap"
+			reply.FileName = s
+			return nil
 		}
-		toMap[s] = 1
-		reply.status = "toMap"
-		reply.fileName = s
-		return nil
 	}
-	for s := range toReduced {
-		reply.status = "toReduced"
-		reply.fileName = s
-		return nil
-	}
+	reply.Status = "allInDeal"
 	return nil
 }
 
@@ -60,11 +55,10 @@ func (c *Coordinator) server() {
 // if the entire job has finished.
 func (c *Coordinator) Done() bool {
 	// Your code here.
-	return len(toReduced) == 0
+	return len(toMap) == 0
 }
 
 var toMap = make(map[string]int)
-var toReduced = make(map[string]int)
 
 // create a Coordinator.
 // main/mrcoordinator.go calls this function.
@@ -74,7 +68,6 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	// Your code here.
 	for i := range files {
 		toMap[files[i]] = 0
-		toReduced[files[i]] = 0
 	}
 	c.server()
 	return &c

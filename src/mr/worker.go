@@ -1,6 +1,11 @@
 package mr
 
-import "fmt"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
+)
 import "log"
 import "net/rpc"
 import "hash/fnv"
@@ -22,38 +27,60 @@ func ihash(key string) int {
 // main/mrworker.go calls this function.
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
+	for {
+		res := CallExample()
+		if res == "completed" {
+			break
+		}
+		if res == "error" {
+			continue
+		}
+		if res == "allInDeal" {
+			time.Sleep(3 * time.Second)
+		}
+		if res == "map" {
+			var filename = res
+			file, err := os.Open(filename)
+			if err != nil {
+				log.Fatalf("cannot open %v", filename)
+			}
+			content, err := ioutil.ReadAll(file)
+			if err != nil {
+				log.Fatalf("cannot read %v", filename)
+			}
+			file.Close()
+			mapf(filename, string(content))
+		}
 
-	// Your worker implementation here.
-
-	// uncomment to send the Example RPC to the coordinator.
-	// CallExample()
-
+	}
 }
 
 // example function to show how to make an RPC call to the coordinator.
 //
 // the RPC argument and reply types are defined in rpc.go.
-func CallExample() {
+func CallExample() string {
 
 	// declare an argument structure.
 	args := ExampleArgs{}
-
-	// fill in the argument(s).
-	args.X = 99
-
-	// declare a reply structure.
 	reply := ExampleReply{}
-
+	args.Status = "request"
+	args.FileName = ""
 	// send the RPC request, wait for the reply.
 	// the "Coordinator.Example" tells the
 	// receiving server that we'd like to call
 	// the Example() method of struct Coordinator.
 	ok := call("Coordinator.Example", &args, &reply)
 	if ok {
-		// reply.Y should be 100.
-		fmt.Printf("reply.Y %v\n", reply.Y)
+		if reply.Status == "completed" {
+			return "completed"
+		}
+		if reply.Status == "allInDeal" {
+			return "allInDeal"
+		}
+		return reply.FileName
+
 	} else {
-		fmt.Printf("call failed!\n")
+		return "error"
 	}
 }
 

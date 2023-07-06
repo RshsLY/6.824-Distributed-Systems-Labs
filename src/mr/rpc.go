@@ -15,13 +15,13 @@ import "strconv"
 //
 
 type ExampleArgs struct {
-	status   string
-	fileName string
+	Status   string
+	FileName string
 }
 
 type ExampleReply struct {
-	status   string
-	fileName string
+	Status   string
+	FileName string
 }
 
 // Add your RPC definitions here.
