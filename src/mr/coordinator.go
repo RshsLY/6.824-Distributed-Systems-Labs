@@ -18,7 +18,11 @@ type Coordinator struct {
 // the RPC argument and reply types are defined in rpc.go.
 func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 	if args.Status == "mapped" {
-		delete(toMap, args.FileName)
+		delete(mapTask, args.FileName)
+		return nil
+	}
+	if args.Status == "reduced" {
+		delete(mapTask, args.FileName)
 		return nil
 	}
 	if args.Status == "toMap" {
@@ -54,11 +58,16 @@ func (c *Coordinator) server() {
 // main/mrcoordinator.go calls Done() periodically to find out
 // if the entire job has finished.
 func (c *Coordinator) Done() bool {
-	// Your code here.
-	return len(toMap) == 0
+
+	return len(reduceTask) == 0
 }
 
-var toMap = make(map[string]int)
+//0:not map  1:mapping
+var mapTask = make(map[string]int)
+
+//0:toReduce 1:reducing
+var reduceTask = make([]int, 10)
+var nReduce int = 0
 
 // create a Coordinator.
 // main/mrcoordinator.go calls this function.
@@ -67,8 +76,13 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
 	// Your code here.
 	for i := range files {
-		toMap[files[i]] = 0
+		mapTask[files[i]] = 0
 	}
+	reduceTask = make([]int, nReduce)
+	for i := 0; i < nReduce; i++ {
+		reduceTask[i] = 0
+	}
+	nReduce = nReduce
 	c.server()
 	return &c
 }
